@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Screen Share + Watch</title>
+<style>
+button { margin: 10px; padding: 10px 20px; font-size: 16px; }
+video { width: 90%; height: auto; border: 1px solid black; margin-top: 20px; }
+</style>
+</head>
+<body>
+<h2>Screen Share Demo</h2>
+<button id="shareBtn">Share Screen</button>
+<button id="watchBtn">Watch Screen</button>
+<video id="remoteVideo" autoplay playsinline></video>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io('http://10.148.2.100:3000'); // PC ka IP address
+const peers = {};
+let localStream;
+
+// **Share Screen**
+document.getElementById('shareBtn').onclick = async () => {
+    try {
+        localStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    } catch(e) {
+        alert('Screen share permission denied!');
+        return;
+    }
+
+    socket.emit('broadcaster');
+
+    socket.on('watcher', id => {
+        const pc = new RTCPeerConnection();
+        peers[id] = pc;
+
+        localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+
+        pc.onicecandidate = event => {
+            if(event.candidate){
+                socket.emit('ice-candidate', id, event.candidate);
+            }
+        };
+
+        pc.createOffer().then(sdp => pc.setLocalDescription(sdp))
+                    .then(() => socket.emit('offer', id, pc.localDescription));
+    });
+
+    socket.on('answer', (id, description) => {
+        peers[id].setRemoteDescription(description);
+    });
+
+    socket.on('ice-candidate', (id, candidate) => {
+        peers[id].addIceCandidate(candidate);
+    });
+};
+
+// **Watch Screen**
+document.getElementById('watchBtn').onclick = () => {
+    socket.emit('watcher');
+};
+
+// **Viewer socket events**
+socket.on('broadcaster', () => {
+    socket.emit('watcher');
+});
+
+socket.on('offer', async (id, description) => {
+    const pc = new RTCPeerConnection();
+    peers[id] = pc;
+
+    pc.ontrack = event => {
+        document.getElementById('remoteVideo').srcObject = event.streams[0];
+    };
+
+    pc.onicecandidate = event => {
+        if(event.candidate){
+            socket.emit('ice-candidate', id, event.candidate);
+        }
+    };
+
+    await pc.setRemoteDescription(description);
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    socket.emit('answer', id, pc.localDescription);
+});
+
+socket.on('ice-candidate', (id, candidate) => {
+    peers[id].addIceCandidate(candidate);
+});
+
+socket.on('disconnectPeer', id => {
+    if(peers[id]) peers[id].close();
+    delete peers[id];
+});
+</script>
+</body>
+</html>
