@@ -1,45 +1,85 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
 
-app.use(express.static('public'));
+const io = new Server(server, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',
+        methods: ['GET', 'POST']
+    }
+});
 
-let broadcaster;
+// Serve static files from 'public' (for WebRTC client)
+app.use(express.static(path.join(__dirname, 'public')));
 
-io.on('connection', socket => {
-    console.log('User connected:', socket.id);
+// Store broadcasters by room code
+const broadcasters = {};
 
-    socket.on('broadcaster', () => {
-        broadcaster = socket.id;
-        socket.broadcast.emit('broadcaster');
+io.on('connection', (socket) => {
+    console.log(`[+] User connected: ${socket.id}`);
+
+    socket.on('broadcaster', (roomCode) => {
+        broadcasters[roomCode] = socket.id;
+        console.log(`[!] Broadcaster set for room ${roomCode}: ${socket.id}`);
+        socket.join(roomCode);
     });
 
-    socket.on('watcher', () => {
-        if (broadcaster) {
-            socket.to(broadcaster).emit('watcher', socket.id);
+    socket.on('watcher', (roomCode) => {
+        if (broadcasters[roomCode]) {
+            console.log(`[+] Watcher for room ${roomCode}: ${socket.id}`);
+            socket.to(broadcasters[roomCode]).emit('watcher', socket.id, roomCode);
+            socket.join(roomCode);
+        } else {
+            console.log(`[!] No broadcaster found for room ${roomCode}`);
+            socket.emit('no-broadcaster', roomCode);
         }
     });
 
-    socket.on('offer', (id, message) => {
-        socket.to(id).emit('offer', socket.id, message);
+    socket.on('offer', (id, message, roomCode) => {
+        socket.to(id).emit('offer', socket.id, message, roomCode);
     });
 
     socket.on('answer', (id, message) => {
         socket.to(id).emit('answer', socket.id, message);
     });
 
-    socket.on('ice-candidate', (id, message) => {
+    socket.on('ice-candidate', (id, message, roomCode) => {
         socket.to(id).emit('ice-candidate', socket.id, message);
     });
 
+    socket.on('stop-sharing', (roomCode) => {
+        if (broadcasters[roomCode] === socket.id) {
+            delete broadcasters[roomCode];
+            console.log(`[!] Broadcaster stopped sharing for room ${roomCode}`);
+            socket.to(roomCode).emit('broadcaster-disconnected');
+        }
+    });
+
     socket.on('disconnect', () => {
+        console.log(`[-] Disconnected: ${socket.id}`);
+        
+        // Remove broadcaster if they disconnect
+        for (const [roomCode, broadcasterId] of Object.entries(broadcasters)) {
+            if (broadcasterId === socket.id) {
+                delete broadcasters[roomCode];
+                console.log(`[!] Broadcaster disconnected from room ${roomCode}`);
+                socket.to(roomCode).emit('broadcaster-disconnected');
+                break;
+            }
+        }
+        
         socket.broadcast.emit('disconnectPeer', socket.id);
     });
 });
 
-// Listen on all interfaces so mobile can connect
-server.listen(3000, '0.0.0.0', () => console.log('Server running on http://10.148.2.100:3000'));
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+
+server.listen(PORT, HOST, () => {
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+});
