@@ -10,45 +10,40 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: process.env.CORS_ORIGIN || '*',
-        methods: ['GET', 'POST']
+        methods: ['GET','POST']
     }
 });
 
+// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Store broadcasters by room
 const broadcasters = {};
 
-io.on('connection', (socket) => {
-    console.log(`[+] User connected: ${socket.id}`);
+io.on('connection', socket => {
+    console.log('[+] Connected:', socket.id);
 
-    socket.on('broadcaster', (roomCode) => {
+    socket.on('broadcaster', roomCode => {
         broadcasters[roomCode] = socket.id;
-        console.log(`[!] Broadcaster set for room ${roomCode}: ${socket.id}`);
         socket.join(roomCode);
+        console.log(`[!] Broadcaster set for room ${roomCode}: ${socket.id}`);
     });
 
-    socket.on('watcher', (roomCode) => {
-        if (broadcasters[roomCode]) {
-            socket.to(broadcasters[roomCode]).emit('watcher', socket.id, roomCode);
+    socket.on('watcher', roomCode => {
+        const broadcasterId = broadcasters[roomCode];
+        if (broadcasterId) {
+            socket.to(broadcasterId).emit('watcher', socket.id);
             socket.join(roomCode);
         } else {
             socket.emit('no-broadcaster', roomCode);
         }
     });
 
-    socket.on('offer', (id, message) => {
-        socket.to(id).emit('offer', socket.id, message);
-    });
+    socket.on('offer', (id, sdp) => socket.to(id).emit('offer', socket.id, sdp));
+    socket.on('answer', (id, sdp) => socket.to(id).emit('answer', socket.id, sdp));
+    socket.on('ice-candidate', (id, candidate) => socket.to(id).emit('ice-candidate', socket.id, candidate));
 
-    socket.on('answer', (id, message) => {
-        socket.to(id).emit('answer', socket.id, message);
-    });
-
-    socket.on('ice-candidate', (id, candidate) => {
-        socket.to(id).emit('ice-candidate', socket.id, candidate);
-    });
-
-    socket.on('stop-sharing', (roomCode) => {
+    socket.on('stop-sharing', roomCode => {
         if (broadcasters[roomCode] === socket.id) {
             delete broadcasters[roomCode];
             socket.to(roomCode).emit('broadcaster-disconnected');
@@ -56,11 +51,10 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-        for (const [roomCode, broadcasterId] of Object.entries(broadcasters)) {
-            if (broadcasterId === socket.id) {
-                delete broadcasters[roomCode];
-                socket.to(roomCode).emit('broadcaster-disconnected');
-                break;
+        for (const [room, id] of Object.entries(broadcasters)) {
+            if (id === socket.id) {
+                delete broadcasters[room];
+                socket.to(room).emit('broadcaster-disconnected');
             }
         }
     });

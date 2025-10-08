@@ -1,71 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Screen Share + Watch</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Share & Watch</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Screen Share & Watch</h1>
-            <p class="subtitle">Share your screen or watch someone else's with room codes</p>
-        </header>
-        
-        <div class="main-content">
-            <div class="control-panel">
-                <div class="room-code-section">
-                    <h2>Room Code</h2>
-                    <div class="room-code" id="roomCodeDisplay">45535</div>
-                    <button class="generate-btn" id="generateCodeBtn">
-                        <i class="fas fa-sync-alt"></i> Generate New Code
-                    </button>
-                </div>
-                
-                <div class="input-group">
-                    <label for="roomCodeInput">Enter Room Code to Watch</label>
-                    <input type="text" id="roomCodeInput" placeholder="Enter 5-digit code">
-                </div>
-                
-                <div class="button-group">
-                    <button class="share-btn" id="shareBtn">
-                        <i class="fas fa-desktop"></i> Share My Screen
-                    </button>
-                    <button class="watch-btn" id="watchBtn">
-                        <i class="fas fa-eye"></i> Watch Screen
-                    </button>
-                </div>
-                
-                <div class="status disconnected" id="connectionStatus">
-                    Not Connected
-                </div>
-            </div>
-            
-            <div class="video-container">
-                <h2>Screen View</h2>
-                <video id="remoteVideo" autoplay playsinline muted></video>
-                <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <h3>How to Use</h3>
-            <ol>
-                <li>To share your screen: Click "Share My Screen" and grant permission when prompted</li>
-                <li>To watch someone's screen: Enter their room code and click "Watch Screen"</li>
-                <li>You can generate a new room code anytime using the "Generate New Code" button</li>
-                <li>Share your room code with others so they can watch your screen</li>
-            </ol>
-        </div>
-        
-        <footer>
-            <p>Screen Share & Watch &copy; 2023 | Secure Peer-to-Peer Connection</p>
-        </footer>
-    </div>
+<div class="container">
+    <header>
+        <h1>Screen Share & Watch</h1>
+        <p class="subtitle">Share your screen or watch someone else's with room codes</p>
+    </header>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="client.js"></script>
+    <div class="main-content">
+        <div class="control-panel">
+            <div class="room-code-section">
+                <h2>Room Code</h2>
+                <div class="room-code" id="roomCodeDisplay"></div>
+                <button class="generate-btn" id="generateCodeBtn"><i class="fas fa-sync-alt"></i> Generate New Code</button>
+            </div>
+
+            <div class="input-group">
+                <label for="roomCodeInput">Enter Room Code to Watch</label>
+                <input type="text" id="roomCodeInput" placeholder="Enter 5-digit code">
+            </div>
+
+            <div class="button-group">
+                <button class="share-btn" id="shareBtn"><i class="fas fa-desktop"></i> Share My Screen</button>
+                <button class="watch-btn" id="watchBtn"><i class="fas fa-eye"></i> Watch Screen</button>
+            </div>
+
+            <div class="status disconnected" id="connectionStatus">Not Connected</div>
+        </div>
+
+        <div class="video-container">
+            <h2>Screen View</h2>
+            <video id="remoteVideo" autoplay playsinline muted></video>
+            <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
+        </div>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="client.js"></script>
 </body>
 </html>
