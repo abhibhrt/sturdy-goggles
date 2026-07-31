@@ -14,10 +14,8 @@ const io = new Server(server, {
     }
 });
 
-// Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Store broadcasters by room
 const broadcasters = {};
 
 io.on('connection', socket => {
@@ -32,16 +30,26 @@ io.on('connection', socket => {
     socket.on('watcher', roomCode => {
         const broadcasterId = broadcasters[roomCode];
         if (broadcasterId) {
-            socket.to(broadcasterId).emit('watcher', socket.id);
             socket.join(roomCode);
+            // Notify broadcaster about the new watcher
+            io.to(broadcasterId).emit('watcher', socket.id);
+            console.log(`[!] Watcher ${socket.id} joined room ${roomCode} for broadcaster ${broadcasterId}`);
         } else {
             socket.emit('no-broadcaster', roomCode);
         }
     });
 
-    socket.on('offer', (id, sdp) => socket.to(id).emit('offer', socket.id, sdp));
-    socket.on('answer', (id, sdp) => socket.to(id).emit('answer', socket.id, sdp));
-    socket.on('ice-candidate', (id, candidate) => socket.to(id).emit('ice-candidate', socket.id, candidate));
+    socket.on('offer', (id, sdp) => {
+        socket.to(id).emit('offer', socket.id, sdp);
+    });
+
+    socket.on('answer', (id, sdp) => {
+        socket.to(id).emit('answer', socket.id, sdp);
+    });
+
+    socket.on('ice-candidate', (id, candidate) => {
+        socket.to(id).emit('ice-candidate', socket.id, candidate);
+    });
 
     socket.on('stop-sharing', roomCode => {
         if (broadcasters[roomCode] === socket.id) {
@@ -54,9 +62,10 @@ io.on('connection', socket => {
         for (const [room, id] of Object.entries(broadcasters)) {
             if (id === socket.id) {
                 delete broadcasters[room];
-                socket.to(room).emit('broadcaster-disconnected');
+                io.to(room).emit('broadcaster-disconnected');
             }
         }
+        console.log('[-] Disconnected:', socket.id);
     });
 });
 
