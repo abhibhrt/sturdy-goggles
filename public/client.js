@@ -25,12 +25,13 @@ function updateStatus(message, type) {
     statusEl.className = `status ${type}`;
 }
 
-// -------------------- STUN/TURN --------------------
+// -------------------- STUN/TURN (Updated for Loopback & Mobile Reliability) --------------------
 const pcConfig = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
-        // Add TURN server for mobile reliability
-        // { urls: "turn:TURN_IP:3478", username: "user", credential: "pass" }
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun.stunprotocol.org:3478" }
     ]
 };
 
@@ -87,14 +88,31 @@ socket.on('watcher', id => {
     peers[id] = pc;
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
 
-    pc.onicecandidate = e => { if (e.candidate) socket.emit('ice-candidate', id, e.candidate); };
+    pc.onicecandidate = e => { 
+        if (e.candidate) socket.emit('ice-candidate', id, e.candidate); 
+    };
 
-    pc.createOffer().then(o => pc.setLocalDescription(o))
-        .then(() => socket.emit('offer', id, pc.localDescription, roomCode));
+    pc.createOffer()
+        .then(o => pc.setLocalDescription(o))
+        .then(() => {
+            // Fixed: Removed extra 'roomCode' argument to match server signature socket.on('offer', (id, sdp) => ...)
+            socket.emit('offer', id, pc.localDescription);
+        })
+        .catch(err => console.error("Error creating offer:", err));
 });
 
-socket.on('answer', (id, desc) => { if (peers[id]) peers[id].setRemoteDescription(desc); });
-socket.on('ice-candidate', (id, c) => { if (peers[id]) peers[id].addIceCandidate(c); });
+socket.on('answer', (id, desc) => { 
+    if (peers[id]) {
+        peers[id].setRemoteDescription(new RTCSessionDescription(desc)).catch(err => console.error(err));
+    }
+});
+
+socket.on('ice-candidate', (id, c) => { 
+    if (peers[id] && c) {
+        peers[id].addIceCandidate(new RTCIceCandidate(c)).catch(err => console.error(err));
+    }
+});
+
 socket.on('broadcaster-disconnected', stopSharing);
 
 // Watcher events
@@ -102,14 +120,31 @@ socket.on('offer', async (id, desc) => {
     const pc = new RTCPeerConnection(pcConfig);
     peers[id] = pc;
 
-    pc.ontrack = e => { document.getElementById('remoteVideo').srcObject = e.streams[0]; };
-    pc.onicecandidate = e => { if(e.candidate) socket.emit('ice-candidate', id, e.candidate); };
+    pc.ontrack = e => { 
+        document.getElementById('remoteVideo').srcObject = e.streams[0]; 
+    };
+    
+    pc.onicecandidate = e => { 
+        if(e.candidate) socket.emit('ice-candidate', id, e.candidate); 
+    };
 
-    await pc.setRemoteDescription(desc);
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('answer', id, pc.localDescription);
+    try {
+        await pc.setRemoteDescription(new RTCSessionDescription(desc));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socket.emit('answer', id, pc.localDescription);
+    } catch (err) {
+        console.error("Error handling watcher offer:", err);
+    }
 });
 
-socket.on('disconnectPeer', id => { if(peers[id]) { peers[id].close(); delete peers[id]; } });
-socket.on('no-broadcaster', () => { alert("No broadcaster found for this room yet."); });
+socket.on('disconnectPeer', id => { 
+    if(peers[id]) { 
+        peers[id].close(); 
+        delete peers[id]; 
+    } 
+});
+
+socket.on('no-broadcaster', () => { 
+    alert("No broadcaster found for this room yet."); 
+});
