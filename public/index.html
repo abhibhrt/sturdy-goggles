@@ -1,49 +1,56 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Screen Share & Watch</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Share & Watch</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-<div class="container">
-    <header>
-        <h1>Screen Share & Watch</h1>
-        <p class="subtitle">Share your screen or watch someone else's with room codes</p>
-    </header>
+    <div class="container">
+        <header>
+            <img src="favicon.ico" alt="verse-ex Logo">
+            <div class="header-text">
+                <h1>verse-ex</h1>
+                <p class="subtitle">Share your screen or watch securely with room codes</p>
+            </div>
+        </header>
 
-    <div class="main-content">
-        <div class="control-panel">
-            <div class="room-code-section">
-                <h2>Room Code</h2>
-                <div class="room-code" id="roomCodeDisplay"></div>
-                <button class="generate-btn" id="generateCodeBtn"><i class="fas fa-sync-alt"></i> Generate New Code</button>
+        <div class="main-content">
+            <div class="control-panel">
+                <div class="room-code-section">
+                    <h2>Room Code</h2>
+                    <div class="room-code" id="roomCodeDisplay"></div>
+                    <i class="fas fa-copy copy-btn" id="copyCodeBtn"></i>
+                    <button class="generate-btn" id="generateCodeBtn"><i class="fas fa-sync-alt"></i> Generate New Code</button>
+                </div>
+
+                <div class="input-group">
+                    <label for="roomCodeInput">Enter Room Code to Watch</label>
+                    <input type="text" id="roomCodeInput" placeholder="Enter 5-digit code">
+                </div>
+
+                <div class="button-group">
+                    <button class="share-btn" id="shareBtn"><i class="fas fa-desktop"></i> Share My Screen</button>
+                    <button class="watch-btn" id="watchBtn"><i class="fas fa-eye"></i> Watch Screen</button>
+                </div>
+
+                <div class="status disconnected" id="connectionStatus">Not Connected</div>
             </div>
 
-            <div class="input-group">
-                <label for="roomCodeInput">Enter Room Code to Watch</label>
-                <input type="text" id="roomCodeInput" placeholder="Enter 5-digit code">
+            <div class="video-container">
+                <h2>Screen View</h2>
+                <video id="remoteVideo" autoplay playsinline muted></video>
+                <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
             </div>
-
-            <div class="button-group">
-                <button class="share-btn" id="shareBtn"><i class="fas fa-desktop"></i> Share My Screen</button>
-                <button class="watch-btn" id="watchBtn"><i class="fas fa-eye"></i> Watch Screen</button>
-            </div>
-
-            <div class="status disconnected" id="connectionStatus">Not Connected</div>
-        </div>
-
-        <div class="video-container">
-            <h2>Screen View</h2>
-            <video id="remoteVideo" autoplay playsinline muted></video>
-            <video id="localVideo" autoplay playsinline muted style="display:none;"></video>
         </div>
     </div>
-</div>
 
-<script src="/socket.io/socket.io.js"></script>
-<script src="client.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
 </body>
+
 </html>

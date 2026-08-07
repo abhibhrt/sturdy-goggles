@@ -70,4 +70,4 @@ io.on('connection', socket => {
 });
 
 const PORT = process.env.PORT || 5467;
-server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running... http://localhost:${PORT}`));

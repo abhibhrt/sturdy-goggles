@@ -148,3 +148,29 @@ socket.on('disconnectPeer', id => {
 socket.on('no-broadcaster', () => { 
     alert("No broadcaster found for this room yet."); 
 });
+
+// ---------------------- Handle Copy ------------------------
+const copyBtn = document.getElementById('copyCodeBtn');
+
+if (copyBtn) {
+    copyBtn.addEventListener('click', function() {
+        const roomCodeText = document.getElementById('roomCodeDisplay').innerText;
+        
+        if (!roomCodeText || roomCodeText.trim() === '') {
+            return;
+        }
+
+        navigator.clipboard.writeText(roomCodeText).then(() => {
+            copyBtn.classList.remove('fa-copy');
+            copyBtn.style.color = 'rgb(0, 221, 0)';
+            copyBtn.classList.add('fa-check');
+            setTimeout(() => {
+                copyBtn.classList.remove('fa-check');
+                copyBtn.style.color = 'white';
+                copyBtn.classList.add('fa-copy');
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    });
+}
